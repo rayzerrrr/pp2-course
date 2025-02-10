@@ -38,5 +38,5 @@ def average_imdb_by_category(movies, category):
     category_movies = movies_by_category(movies, category)
     return average_imdb(category_movies)
 
-print(average_imdb_by_category(movies , "Romance"))
+print(high_rated_movies(movies))
 
