@@ -1,6 +1,6 @@
 import math
 
-#1 class toUpper:
+# class toUpper:
 #     def __init__(self):
 #         self.string = ""
 
@@ -55,7 +55,7 @@ import math
 
 
 
-#4 class Point:
+# class Point:
 #     def __init__(self, x, y, x2, y2):
 #         self.x = x
 #         self.y = y
@@ -115,7 +115,6 @@ import math
 #     if command == "exit":
 #         break
 #     elif command in ["deposit", "withdraw"]:
-#         try:
 #             amount = int(input())
 #             if amount < 0:
 #                 continue
@@ -124,8 +123,6 @@ import math
 #                 account.deposit(amount)
 #             elif command == "withdraw":
 #                 account.withdraw(amount)
-#         except ValueError:
-#             continue
 #     else:
 #         continue
 
