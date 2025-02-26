@@ -107,3 +107,4 @@ def main():
     print(camel_to_snake("SnakeCaseVar"))
 
 
+main()
