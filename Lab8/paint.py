@@ -1,200 +1,200 @@
-
 import pygame
+import math
 
 pygame.init()
-FPS = 120
-FramePerSec = pygame.time.Clock()
-# Setting window size
-win_x = 500
-win_y = 500
 
-win = pygame.display.set_mode((win_x, win_y))
-pygame.display.set_caption('Paint')
+WIDTH, HEIGHT = 900, 700
+screen = pygame.display.set_mode((WIDTH, HEIGHT))
+pygame.display.set_caption("GFG Paint")
 
-# Class for drawing 
-class drawing(object):
+BLACK = (0, 0, 0)
+WHITE = (255, 255, 255)
+RED = (255, 0, 0)
+YELLOW = (255, 255, 0)
+GREEN = (0, 255, 0)
+BLUE = (0, 0, 255)
+PURPLE = (128, 0, 128)
 
-	def __init__(self):
-		self.color = (0, 0, 0)
-		self.width = 10
-		self.height = 10
-		self.rad = 6
-		self.tick = 0
-		self.time = 0
-		self.play = False
-		
-	# Drawing Function
-	def draw(self, win, pos):
-		pygame.draw.circle(win, self.color, (pos[0], pos[1]), self.rad)
-		if self.color == (255, 255, 255):
-			pygame.draw.circle(win, self.color, (pos[0], pos[1]), 20)
+screen.fill(WHITE)
 
-	# detecting clicks
-	def click(self, win, list, list2):
-		pos = pygame.mouse.get_pos()
+# Кнопки выбора цветов
+COLOR_BUTTONS = [
+    {"color": RED, "rect": pygame.Rect(10, 10, 50, 50)},
+    {"color": YELLOW, "rect": pygame.Rect(70, 10, 50, 50)},
+    {"color": GREEN, "rect": pygame.Rect(130, 10, 50, 50)},
+    {"color": BLUE, "rect": pygame.Rect(190, 10, 50, 50)},
+    {"color": BLACK, "rect": pygame.Rect(250, 10, 50, 50)}
+]
 
-		if pygame.mouse.get_pressed() == (1, 0, 0) and pos[0] < 400:
-			if pos[1] > 25:
-				self.draw(win, pos)
-		elif pygame.mouse.get_pressed() == (1, 0, 0):
-			for button in list:
-				if pos[0] > button.x and pos[0] < button.x + button.width:
-					if pos[1] > button.y and pos[1] < button.y + button.height:
-						self.color = button.color2
-			for button in list2:
-				if pos[0] > button.x and pos[0] < button.x + button.width:
-					if pos[1] > button.y and pos[1] < button.y + button.height:
-						if self.tick == 0:
-							if button.action == 1:
-								win.fill((255, 255, 255))
-								self.tick += 1
-							if button.action == 2 and self.rad > 4:
-								self.rad -= 1
-								self.tick += 1
-								pygame.draw.rect(
-									win, (255, 255, 255), (410, 308, 80, 35))
+# Загрузка изображения ластика
+eraser_img = pygame.image.load('Lab8/images/eraser.png')
+eraser_img = pygame.transform.scale(eraser_img, (50, 50))
 
-							if button.action == 3 and self.rad < 20:
-								self.rad += 1
-								self.tick += 1
-								pygame.draw.rect(
-									win, (255, 255, 255), (410, 308, 80, 35))
+# Кнопки выбора фигур с изображениями
+TOOLS = [
+    {"name": "Линия", "rect": pygame.Rect(320, 10, 60, 60), "type": "pencil", "shape": "line"},
+    {"name": "Прямоугольник", "rect": pygame.Rect(380, 10, 60, 60), "type": "rectangle", "shape": "rectangle"},
+    {"name": "Круг", "rect": pygame.Rect(440, 10, 60, 60), "type": "circle", "shape": "circle"},
+    {"name": "Квадрат", "rect": pygame.Rect(500, 10, 60, 60), "type": "square", "shape": "square"},
+    {"name": "Прямоуг. треугольник", "rect": pygame.Rect(560, 10, 60, 60), "type": "right_triangle", "shape": "right_triangle"},
+    {"name": "Равносторонний треугольник", "rect": pygame.Rect(620, 10, 60, 60), "type": "equilateral_triangle", "shape": "equilateral_triangle"},
+    {"name": "Ромб", "rect": pygame.Rect(680, 10, 60, 60), "type": "rhombus", "shape": "rhombus"}
+]
 
-							if button.action == 5 and self.play == False:
-								self.play = True
-								
-								self.time += 1
-							if button.action == 6:
-								self.play = False
-								self.time = 0
+# Кнопка выбора ластика
+eraser_button = pygame.Rect(740, 10, 50, 50)
 
-		for button in list2:
-			if button.action == 4:
-				button.text = str(self.rad)
+# Текущие настройки
+current_color = BLACK
+current_tool = "pencil"
+drawing = False
+start_pos = None
+last_pos = None
 
-			if button.action == 7 and self.play == True:
-				button.text = str(40 - (player1.time // 100))
-			if button.action == 7 and self.play == False:
-				button.text = 'Time'
+# Оригинальные функции для рисования
+def draw_pencil(surface, color, start, end, width=3):
+    pygame.draw.line(surface, color, start, end, width)
 
-# Class for buttons
-class button(object):
+def draw_rectangle(surface, color, start, end):
+    x1, y1 = start
+    x2, y2 = end
+    width = abs(x2 - x1)
+    height = abs(y2 - y1)
+    pygame.draw.rect(surface, color, (min(x1, x2), min(y1, y2), width, height), 3)
 
-	def __init__(self, x, y, width, height, color, color2, outline=0, action=0, text=''):
-		self.x = x
-		self.y = y
-		self.height = height
-		self.width = width
-		self.color = color
-		self.outline = outline
-		self.color2 = color2
-		self.action = action
-		self.text = text
-		
-# Class for drawing buttons
-	def draw(self, win):
+def draw_circle(surface, color, start, end):
+    x1, y1 = start
+    x2, y2 = end
+    radius = int(math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2))
+    pygame.draw.circle(surface, color, start, radius, 3)
 
-		pygame.draw.rect(win, self.color, (self.x, self.y,
-										self.width, self.height), self.outline)
-		font = pygame.font.SysFont('comicsans', 30)
-		text = font.render(self.text, 1, self.color2)
-		pygame.draw.rect(win, (255, 255, 255), (410, 446, 80, 35))
-		win.blit(text, (int(self.x+self.width/2-text.get_width()/2),
-						int(self.y+self.height/2-text.get_height()/2)))
+def draw_square(surface, color, start, end):
+    """Рисует квадрат, основываясь на координатах двух противоположных углов"""
+    side_length = min(abs(end[0] - start[0]), abs(end[1] - start[1]))
+    pygame.draw.rect(surface, color, (start[0], start[1], side_length, side_length), 3)
+
+def draw_right_triangle(surface, color, start, end):
+    x1, y1 = start
+    x2, y2 = end
+    pygame.draw.polygon(surface, color, [(x1, y1), (x1, y2), (x2, y2)], 3)
+
+def draw_equilateral_triangle(surface, color, start, end):
+    x1, y1 = start
+    x2, y2 = end
+    side = abs(x2 - x1)
+    h = (math.sqrt(3) / 2) * side
+    pygame.draw.polygon(surface, color, [(x1, y2), (x1 + side, y2), (x1 + side / 2, y2 - h)], 3)
 
 
-def drawHeader(win):
-	# Drawing header space
-	pygame.draw.rect(win, (175, 171, 171), (0, 0, 500, 25))
-	pygame.draw.rect(win, (0, 0, 0), (0, 0, 400, 25), 2)
-	pygame.draw.rect(win, (0, 0, 0), (400, 0, 100, 25), 2)
+def draw_rhombus(surface, color, start, end):
+    """Рисует ромб"""
+    x1, y1 = start
+    x2, y2 = end
+    center_x = (x1 + x2) / 2
+    center_y = (y1 + y2) / 2
+    points = [(x1, center_y), (center_x, y1), (x2, center_y), (center_x, y2)]
+    pygame.draw.polygon(surface, color, points, 3)
 
-	# Printing header
-	font = pygame.font.SysFont('comicsans', 30)
+def erase_area(surface, position):
+    pygame.draw.circle(surface, WHITE, position, 20)
 
-	canvasText = font.render('Пэйнт', 1, (0, 0, 0))
-	win.blit(canvasText, (int(200 - canvasText.get_width() / 2),
-						int(26 / 2 - canvasText.get_height() / 2) + 2))
+# Функция для рисования фигур внутри кнопок
+def draw_tool_buttons():
+    for button in TOOLS:
+        pygame.draw.rect(screen, BLACK, button["rect"], 2)
+        if button["shape"] == "line":
+            pygame.draw.line(screen, BLACK, (button["rect"].x + 5, button["rect"].y + 30), 
+                             (button["rect"].x + button["rect"].width - 5, button["rect"].y + 30), 3)
+        elif button["shape"] == "rectangle":
+            pygame.draw.rect(screen, BLACK, (button["rect"].x + 5, button["rect"].y + 5, 
+                                             button["rect"].width - 10, button["rect"].height - 10), 3)
+        elif button["shape"] == "circle":
+            pygame.draw.circle(screen, BLACK, (button["rect"].x + button["rect"].width // 2, 
+                                               button["rect"].y + button["rect"].height // 2), 25, 3)
+        elif button["shape"] == "square":
+            pygame.draw.rect(screen, BLACK, (button["rect"].x + 5, button["rect"].y + 5, 
+                                             button["rect"].width - 10, button["rect"].width - 10), 3)
+        elif button["shape"] == "right_triangle":
+            pygame.draw.polygon(screen, BLACK, [(button["rect"].x + 5, button["rect"].y + button["rect"].height - 5),
+                                               (button["rect"].x + button["rect"].width - 5, button["rect"].y + button["rect"].height - 5),
+                                               (button["rect"].x + 5, button["rect"].y + 5)], 3)
+        elif button["shape"] == "equilateral_triangle":
+            pygame.draw.polygon(screen, BLACK, [(button["rect"].x + 5, button["rect"].y + button["rect"].height - 5),
+                                               (button["rect"].x + button["rect"].width - 5, button["rect"].y + button["rect"].height - 5),
+                                               (button["rect"].x + button["rect"].width // 2, button["rect"].y + 5)], 3)
+        elif button["shape"] == "rhombus":
+            pygame.draw.polygon(screen, BLACK, [(button["rect"].x + 5, button["rect"].y + button["rect"].height // 2),
+                                               (button["rect"].x + button["rect"].width // 2, button["rect"].y + 5),
+                                               (button["rect"].x + button["rect"].width - 5, button["rect"].y + button["rect"].height // 2),
+                                               (button["rect"].x + button["rect"].width // 2, button["rect"].y + button["rect"].height - 5)], 3)
 
-	toolsText = font.render('Tools', 1, (0, 0, 0))
-	win.blit(toolsText, (int(450 - toolsText.get_width() / 2),
-						int(26 / 2 - toolsText.get_height() / 2 + 2)))
+# Основной цикл программы
+running = True
+while running:
+    for event in pygame.event.get():
+        if event.type == pygame.QUIT:
+            running = False
 
+        # Обработка клика мыши
+        if event.type == pygame.MOUSEBUTTONDOWN:
+            if event.button == 1:  # ЛКМ
+                # Проверяем кнопки инструментов
+                for button in TOOLS:
+                    if button["rect"].collidepoint(event.pos):
+                        current_tool = button["type"]
 
-def draw(win):
-	player1.click(win, Buttons_color, Buttons_other)
+                # Проверяем кнопку ластика
+                if eraser_button.collidepoint(event.pos):
+                    current_tool = "eraser"
 
-	pygame.draw.rect(win, (0, 0, 0), (400, 0, 100, 500),
-					2) # Drawing button space
-	pygame.draw.rect(win, (255, 255, 255), (400, 0, 100, 500),)
-	pygame.draw.rect(win, (0, 0, 0), (0, 0, 400, 500),
-					2) # Drawing canvas space
-	drawHeader(win)
+                # Проверяем кнопки цветов
+                for button in COLOR_BUTTONS:
+                    if button["rect"].collidepoint(event.pos):
+                        current_color = button["color"]
 
-	for button in Buttons_color:
-		button.draw(win)
+                start_pos = event.pos
+                last_pos = event.pos
+                drawing = True
 
-	for button in Buttons_other:
-		button.draw(win)
+        # Отпускание кнопки мыши
+        if event.type == pygame.MOUSEBUTTONUP:
+            if event.button == 1:  # ЛКМ
+                drawing = False
+                end_pos = event.pos
+                if start_pos and end_pos:
+                    if current_tool == "rectangle":
+                        draw_rectangle(screen, current_color, start_pos, end_pos)
+                    elif current_tool == "circle":
+                        draw_circle(screen, current_color, start_pos, end_pos)
+                    elif current_tool == "square":
+                        draw_square(screen, current_color, start_pos, end_pos)
+                    elif current_tool == "right_triangle":
+                        draw_right_triangle(screen, current_color, start_pos, end_pos)
+                    elif current_tool == "equilateral_triangle":
+                        draw_equilateral_triangle(screen, current_color, start_pos, end_pos)
+                    elif current_tool == "rhombus":
+                        draw_rhombus(screen, current_color, start_pos, end_pos)
 
-	pygame.display.update()
+        # Движение мыши для рисования
+        if event.type == pygame.MOUSEMOTION:
+            if drawing:
+                if current_tool == "pencil":
+                    draw_pencil(screen, current_color, last_pos, event.pos, 3)
+                    last_pos = event.pos  # Обновляем последнюю позицию
+                elif current_tool == "eraser":
+                    erase_area(screen, event.pos)
 
+    # Рисуем кнопки цветов
+    for button in COLOR_BUTTONS:
+        pygame.draw.rect(screen, button["color"], button["rect"])
 
-def main_loop():
-	run = True
-	while run:
-		keys = pygame.key.get_pressed()
-		for event in pygame.event.get():
-			if event.type == pygame.QUIT or keys[pygame.K_ESCAPE]:
-				run = False
+    # Рисуем кнопки инструментов с фигурами
+    draw_tool_buttons()
 
-		draw(win)
+    # Кнопка ластика
+    pygame.draw.rect(screen, BLACK, eraser_button, 2)
+    screen.blit(eraser_img, (eraser_button.x, eraser_button.y))
 
-		if 0 < player1.tick < 40:
-			player1.tick += 1
-		else:
-			player1.tick = 0
+    pygame.display.flip()
 
-		if 0 < player1.time < 4001:
-			player1.time += 1
-		elif 4000 < player1.time < 4004:
-
-			player1.time = 4009
-		else:
-			player1.time = 0
-			player1.play = False
-
-	pygame.quit()
-
-
-
-player1 = drawing()
-# Fill colored to our paint
-win.fill((255, 255, 255))
-pos = (0, 0)
-
-# Defining color buttons
-redButton = button(453, 30, 40, 40, (255, 0, 0), (255, 0, 0))
-blueButton = button(407, 30, 40, 40, (0, 0, 255), (0, 0, 255))
-greenButton = button(407, 76, 40, 40, (0, 255, 0), (0, 255, 0))
-orangeButton = button(453, 76, 40, 40, (255, 192, 0), (255, 192, 0))
-yellowButton = button(407, 122, 40, 40, (255, 255, 0), (255, 255, 0))
-purpleButton = button(453, 122, 40, 40, (112, 48, 160), (112, 48, 160))
-blackButton = button(407, 168, 40, 40, (0, 0, 0), (0, 0, 0))
-whiteButton = button(453, 168, 40, 40, (0, 0, 0), (255, 255, 255), 1)
-
-# Defining other buttons
-clrButton = button(407, 214, 86, 40, (201, 201, 201), (0, 0, 0), 0, 1, 'Clear')
-
-smallerButton = button(407, 260, 40, 40, (201, 201, 201), (0, 0, 0), 0, 2, '-')
-biggerButton = button(453, 260, 40, 40, (201, 201, 201), (0, 0, 0), 0, 3, '+')
-sizeDisplay = button(407, 306, 86, 40, (0, 0, 0), (0, 0, 0), 1, 4, 'Size')
-
-
-Buttons_color = [blueButton, redButton, greenButton, orangeButton,
-				yellowButton, purpleButton, blackButton, whiteButton]
-Buttons_other = [clrButton, smallerButton, biggerButton,
-				sizeDisplay]
-
-main_loop()
-FramePerSec.tick(FPS)
+pygame.quit()
